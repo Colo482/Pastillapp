@@ -134,6 +134,12 @@ CORS_ALLOWED_ORIGINS = [
     "https://pastillapp-ignacio-bonifacios-projects.vercel.app",
 ]
 
+CORS_ALLOWED_ORIGIN_REGEXES = [
+    r"^https://pastillapp-.*\.vercel\.app$",
+]
+
+CORS_ALLOW_CREDENTIALS = True  # Permite que el celu envíe sesiones/cookies
+
 # --- STATIC FILES (CSS, JavaScript, Images) ---
 STATIC_URL = 'static/'
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
