@@ -11,7 +11,7 @@ try:
     User = get_user_model()
     # Cambiá 'admin' y 'tu_password' por lo que quieras usar
     if not User.objects.filter(username='Colo').exists():
-        User.objects.create_superuser('Colo', 'tu_email@gmail.com', 'tu_password_segura')
+        User.objects.create_superuser('Colo', 'ignaciobonifacio4@gmail.com', 'Fausto2021')
         print("Superusuario 'Colo' creado con éxito.")
     else:
         print("El usuario ya existe, no se creó de nuevo.")
