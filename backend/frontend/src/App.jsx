@@ -36,7 +36,7 @@ function App() {
   // --- 3. FUNCIONES GET ---
   const fetchProductos = async () => {
     try {
-      const res = await fetch('http://192.168.0.37:8000/api/productos/');
+      const res = await fetch('https://pastillapp.onrender.com/api/productos/');
       const data = await res.json();
       if (Array.isArray(data)) { setProductos(data); } else { setProductos(data.results || []); }
     } catch (e) { console.error(e); }
@@ -44,7 +44,7 @@ function App() {
 
   const fetchPacientes = async () => {
     try {
-      const res = await fetch('http://192.168.0.37:8000/api/pacientes/'); 
+      const res = await fetch('https://pastillapp.onrender.com/api/pacientes/'); 
       const data = await res.json();
       setPacientes(data); 
     } catch (e) { console.error(e); }
@@ -52,7 +52,7 @@ function App() {
 
   const fetchPedidos = async () => {
     try {
-      const res = await fetch('http://192.168.0.37:8000/api/ventas/pedidos/');
+      const res = await fetch('https://pastillapp.onrender.com/api/ventas/pedidos/');
       const data = await res.json();
       setPedidos(data);
     } catch (e) { console.error(e); }
@@ -72,7 +72,7 @@ function App() {
       }))
     };
     try {
-      const res = await fetch('http://192.168.0.37:8000/api/ventas/pedidos/', {
+      const res = await fetch('https://pastillapp.onrender.com/api/ventas/pedidos/', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(datosPedido)
@@ -89,7 +89,7 @@ function App() {
   const guardarPaciente = async () => {
     const datos = { nombre: nuevoNombre, apellido: nuevoApellido, telefono: nuevoTelefono };
     try {
-      const res = await fetch('http://192.168.0.37:8000/api/pacientes/', {
+      const res = await fetch('https://pastillapp.onrender.com/api/pacientes/', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(datos)
@@ -105,7 +105,7 @@ function App() {
 
   const actualizarPrecio = async (id, nuevoPrecio) => {
     try {
-      const res = await fetch(`http://192.168.0.37:8000/api/productos/${id}/`, {
+      const res = await fetch(`https://pastillapp.onrender.com/api/productos/${id}/`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ precio_actual: nuevoPrecio })
@@ -119,7 +119,7 @@ function App() {
 
   const actualizarStock = async (id, nuevoStock) => {
     try {
-      const res = await fetch(`http://192.168.0.37:8000/api/productos/${id}/`, {
+      const res = await fetch(`https://pastillapp.onrender.com/api/productos/${id}/`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ stock: parseInt(nuevoStock) })
@@ -134,7 +134,7 @@ function App() {
   // --- FUNCIÓN PARA COBRAR (MARCAR ENTREGADO) ---
   const marcarComoEntregado = async (id) => {
     try {
-      const res = await fetch(`http://192.168.0.37:8000/api/ventas/pedidos/${id}/`, {
+      const res = await fetch(`https://pastillapp.onrender.com/api/ventas/pedidos/${id}/`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ pagado: true })
