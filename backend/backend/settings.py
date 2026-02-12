@@ -130,7 +130,7 @@ CORS_ALLOWED_ORIGINS = [
     "http://localhost:5173",
     "http://127.0.0.1:5173",
     "http://192.168.0.37:5173",
-    "https://pastillapp.vercel.app/",
+    "https://pastillapp.vercel.app",
     "https://pastillapp-ignacio-bonifacios-projects.vercel.app",
 ]
 

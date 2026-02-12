@@ -160,6 +160,26 @@ function App() {
     modalPedido.onClose();
   };
 
+  const actualizarEstadoPedido = async (id, campo, valorActual) => {
+  try {
+    const res = await fetch(`https://pastillapp.onrender.com/api/ventas/pedidos/${id}/`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      // Aquí enviamos el nombre del campo (pagado o entregado) y su valor opuesto
+      body: JSON.stringify({ [campo]: !valorActual }) 
+    });
+    
+    if (res.ok) {
+      toast({ 
+        title: `Pedido actualizado`, 
+        status: "success", 
+        duration: 2000 
+      });
+      fetchPedidos(); // Actualiza la lista para que cambien los colorcitos
+    }
+  } catch (e) { console.error("Error al actualizar:", e); }
+};
+
   // --- 6. CÁLCULOS AUXILIARES ---
   // Filtramos los pedidos que NO están pagos para el panel derecho
   const pedidosPendientes = pedidos.filter(p => !p.pagado);
@@ -191,19 +211,26 @@ function App() {
               {/* COLUMNA IZQUIERDA (Grande): HISTORIAL COMPLETO */}
               <Box gridColumn={{ md: "span 2" }}>
                 <Text fontSize="lg" mb={4} fontWeight="bold" color="gray.600">📜 Historial Completo</Text>
-                <Stack spacing={4}>
-                  {pedidos.map(p => (
-                    <Box key={p.id} p={4} shadow="sm" borderWidth="1px" borderRadius="xl" bg="white" borderLeft="5px solid" borderColor={p.pagado ? "green.400" : "orange.400"}>
-                      <Flex justify="space-between" align="center" mb={2}>
-                        <Text fontWeight="bold" fontSize="lg" color="purple.800">{p.nombre_paciente}</Text>
-                        <Badge colorScheme={p.pagado ? "green" : "orange"}>{p.pagado ? "PAGO" : "PENDIENTE"}</Badge>
-                      </Flex>
-                      <Text fontSize="sm" color="gray.600">
-                         📦 {p.detalles.map(d => `${d.cantidad} ${d.nombre_producto}`).join(" + ")}
-                      </Text>
-                      <Text fontWeight="bold" color="green.600" mt={1}>Total: ${p.total}</Text>
-                    </Box>
-                  ))}
+                <Stack spacing={3} mt={2}>
+                  {/* Fila de Pago */}
+                  <Flex justify="space-between" align="center">
+                    <Badge colorScheme={p.pagado ? "green" : "red"} borderRadius="full" px={2}>
+                      {p.pagado ? "PAGADO" : "DEBE"}
+                    </Badge>
+                    <Button size="xs" colorScheme="green" variant="ghost" onClick={() => actualizarEstadoPedido(p.id, 'pagado', p.pagado)}>
+                      {p.pagado ? "Marcar Deuda" : "Cobrar"}
+                    </Button>
+                  </Flex>
+
+                  {/* Fila de Entrega */}
+                  <Flex justify="space-between" align="center">
+                    <Badge colorScheme={p.entregado ? "blue" : "gray"} borderRadius="full" px={2}>
+                      {p.entregado ? "ENTREGADO" : "PENDIENTE"}
+                    </Badge>
+                    <Button size="xs" colorScheme="blue" variant="ghost" onClick={() => actualizarEstadoPedido(p.id, 'entregado', p.entregado)}>
+                      {p.entregado ? "Anular Entrega" : "Entregar"}
+                    </Button>
+                  </Flex>
                 </Stack>
               </Box>
 
