@@ -183,6 +183,11 @@ function App() {
   // --- 6. CÁLCULOS AUXILIARES ---
   // Filtramos los pedidos que NO están pagos para el panel derecho
   const pedidosPendientes = pedidos.filter(p => !p.pagado);
+  // Filtramos los que NO están pagos (tu código actual)
+  const pedidosPendientesPago = pedidos.filter(p => !p.pagado);
+
+// NUEVO: Filtramos los que NO están entregados
+  const pedidosPendientesEntrega = pedidos.filter(p => !p.entregado);
 
   return (
     // CAMBIO: Usamos container.xl para tener más ancho y que entre el panel lateral
@@ -205,100 +210,56 @@ function App() {
               <Button colorScheme="purple" onClick={modalPedido.onOpen}>+ Nueva Venta</Button>
             </Flex>
 
-            {/* GRILLA: 2 Columnas. La izquierda ocupa 3 partes, la derecha 1 parte. */}
-            <SimpleGrid columns={{ base: 1, md: 3 }} spacing={6}>
+            {/* Cambiamos a 4 columnas para que el historial sea ancho y los paneles entren bien */}
+            <SimpleGrid columns={{ base: 1, md: 4 }} spacing={6}>
               
-              {/* COLUMNA IZQUIERDA (Grande): HISTORIAL COMPLETO */}
-              <Box gridColumn={{ md: "span 2" }}>
-                <Text fontSize="lg" mb={4} fontWeight="bold" color="gray.600">📜 Historial Completo</Text>
-                <Stack spacing={4}>
-                  {/* CORRECCIÓN AQUÍ: Agregamos el .map para que 'p' exista */}
-                  {pedidos && pedidos.map(p => (
-                    <Box 
-                      key={p.id} 
-                      p={4} 
-                      shadow="sm" 
-                      borderWidth="1px" 
-                      borderRadius="xl" 
-                      bg="white" 
-                      borderLeft="5px solid" 
-                      borderColor={p.pagado ? "green.400" : "orange.400"}
-                    >
-                      <Flex justify="space-between" align="center" mb={2}>
-                        <Text fontWeight="bold" fontSize="lg" color="purple.800">{p.nombre_paciente}</Text>
-                        <Badge colorScheme={p.pagado ? "green" : "orange"}>{p.pagado ? "PAGO" : "PENDIENTE"}</Badge>
-                      </Flex>
-                      
-                      <Text fontSize="sm" color="gray.600" mb={3}>
-                        📦 {p.detalles.map(d => `${d.cantidad} ${d.nombre_producto}`).join(" + ")}
-                      </Text>
-
-                      <Divider mb={3} />
-
-                      {/* CONTROLES DE ESTADO INDEPENDIENTES */}
-                      <Stack spacing={2}>
-                        {/* Fila de Pago */}
-                        <Flex justify="space-between" align="center">
-                          <Badge colorScheme={p.pagado ? "green" : "red"} borderRadius="full" px={2}>
-                            {p.pagado ? "PAGADO" : "DEBE DINERO"}
-                          </Badge>
-                          <Button size="xs" colorScheme="green" variant="outline" onClick={() => actualizarEstadoPedido(p.id, 'pagado', p.pagado)}>
-                            {p.pagado ? "Marcar Deuda" : "Cobrar"}
-                          </Button>
-                        </Flex>
-
-                        {/* Fila de Entrega */}
-                        <Flex justify="space-between" align="center">
-                          <Badge colorScheme={p.entregado ? "blue" : "gray"} borderRadius="full" px={2}>
-                            {p.entregado ? "ENTREGADO" : "PENDIENTE ENTREGA"}
-                          </Badge>
-                          <Button size="xs" colorScheme="blue" variant="outline" onClick={() => actualizarEstadoPedido(p.id, 'entregado', p.entregado)}>
-                            {p.entregado ? "Anular Entrega" : "Entregar"}
-                          </Button>
-                        </Flex>
-                      </Stack>
-
-                      <Text fontWeight="bold" color="green.600" mt={3} textAlign="right">Total: ${p.total}</Text>
-                    </Box>
-                  ))}
-                </Stack>
-              </Box>
-
-              {/* COLUMNA DERECHA (Panel Lateral): SOLO DEUDORES */}
+              {/* PANEL IZQUIERDO: A ENTREGAR */}
               <Box>
-                <Box position="sticky" top="20px"> {/* Truco: Esto hace que el panel te siga al bajar */}
-                  <Card bg="red.50" borderWidth="1px" borderColor="red.200" shadow="md">
+                <Box position="sticky" top="20px">
+                  <Card bg="blue.50" borderWidth="1px" borderColor="blue.200" shadow="md">
                     <CardHeader pb={0}>
-                      <Heading size="md" color="red.600">⚠️ A Cobrar</Heading>
-                      <Text fontSize="sm" color="red.400">Pendientes de pago</Text>
+                      <Heading size="md" color="blue.600">📦 A Entregar</Heading>
+                      <Text fontSize="sm" color="blue.400">Pendientes de despacho</Text>
                     </CardHeader>
                     <CardBody>
-                      {pedidosPendientes.length === 0 ? (
-                        <Text color="gray.500" fontStyle="italic">¡Excelente! No hay deudas pendientes.</Text>
+                      {pedidosPendientesEntrega.length === 0 ? (
+                        <Text color="gray.500" fontStyle="italic">Todo entregado. ✨</Text>
                       ) : (
                         <Stack spacing={3}>
-                          {pedidosPendientes.map(p => (
-                            <Box key={p.id} p={3} bg="white" borderRadius="md" shadow="sm" borderLeft="4px solid" borderColor="red.400">
+                          {pedidosPendientesEntrega.map(p => (
+                            <Box key={p.id} p={3} bg="white" borderRadius="md" shadow="sm" borderLeft="4px solid" borderColor="blue.400">
                               <Text fontWeight="bold" fontSize="sm">{p.nombre_paciente}</Text>
-                              <Flex justify="space-between" align="center" mt={1}>
-                                <Text fontWeight="bold" color="red.600">${p.total}</Text>
-                                <Button size="xs" colorScheme="red" variant="outline" onClick={() => marcarComoEntregado(p.id)}>
-                                  Cobrar
-                                </Button>
-                              </Flex>
-                              <Text fontSize="xs" color="gray.500" mt={1}>
-                                {new Date(p.fecha).toLocaleDateString()}
+                              <Text fontSize="xs" color="gray.600">
+                                {p.detalles.map(d => `${d.cantidad}u`).join(" + ")}
                               </Text>
+                              <Button size="xs" colorScheme="blue" variant="outline" mt={2} w="full" onClick={() => actualizarEstadoPedido(p.id, 'entregado', p.entregado)}>
+                                Marcar Entregado
+                              </Button>
                             </Box>
                           ))}
                         </Stack>
                       )}
                     </CardBody>
-                    <CardFooter pt={0}>
-                      <Text fontSize="xs" color="gray.500">
-                        Total a cobrar: <b>${pedidosPendientes.reduce((acc, p) => acc + parseFloat(p.total), 0)}</b>
-                      </Text>
-                    </CardFooter>
+                  </Card>
+                </Box>
+              </Box>
+
+              {/* COLUMNA CENTRAL (Historial): Ahora ocupa 2 columnas de espacio */}
+              <Box gridColumn={{ md: "span 2" }}>
+                {/* Aquí va tu Stack con el mapeo de pedidos que corregimos antes */}
+              </Box>
+
+              {/* PANEL DERECHO: A COBRAR (Tu panel actual) */}
+              <Box>
+                <Box position="sticky" top="20px">
+                  <Card bg="red.50" borderWidth="1px" borderColor="red.200" shadow="md">
+                    <CardHeader pb={0}>
+                      <Heading size="md" color="red.600">⚠️ A Cobrar</Heading>
+                      <Text fontSize="sm" color="red.400">Cuentas pendientes</Text>
+                    </CardHeader>
+                    <CardBody>
+                      {/* ... resto de tu código de pedidosPendientesPago ... */}
+                    </CardBody>
                   </Card>
                 </Box>
               </Box>
