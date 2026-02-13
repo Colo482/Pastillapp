@@ -38,7 +38,7 @@ function App() {
     try {
       const res = await fetch('https://pastillapp.onrender.com/api/productos/');
       const data = await res.json();
-      if (Array.isArray(data)) { setProductos(data); } else { setProductos(data.results || []); }
+      setProductos(Array.isArray(data) ? data : (data.results || []));
     } catch (e) { console.error(e); }
   };
 
@@ -58,49 +58,19 @@ function App() {
     } catch (e) { console.error(e); }
   };
 
-  // --- 4. FUNCIONES POST/PATCH ---
-  const guardarPedido = async () => {
-    if (!pacienteSeleccionado || lineasPedido.some(l => !l.productoId || !l.cantidad)) {
-      toast({ title: "Faltan datos", status: "warning" });
-      return;
-    }
-    const datosPedido = {
-      paciente: pacienteSeleccionado.id,
-      detalles: lineasPedido.map(l => ({
-        producto: parseInt(l.productoId),
-        cantidad: parseInt(l.cantidad)
-      }))
-    };
+  // --- 4. FUNCIONES DE ACTUALIZACIÓN (PATCH) ---
+  const actualizarEstadoPedido = async (id, campo, valorActual) => {
     try {
-      const res = await fetch('https://pastillapp.onrender.com/api/ventas/pedidos/', {
-        method: 'POST',
+      const res = await fetch(`https://pastillapp.onrender.com/api/ventas/pedidos/${id}/`, {
+        method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(datosPedido)
+        body: JSON.stringify({ [campo]: !valorActual }) 
       });
       if (res.ok) {
-        fetchPedidos(); fetchProductos(); cerrarLimpiarPedido();
-        toast({ title: "Venta guardada", status: "success" });
-      } else {
-        toast({ title: "Error al guardar", status: "error" });
+        toast({ title: `Pedido actualizado`, status: "success", duration: 2000 });
+        fetchPedidos();
       }
-    } catch (e) { console.error(e); }
-  };
-
-  const guardarPaciente = async () => {
-    const datos = { nombre: nuevoNombre, apellido: nuevoApellido, telefono: nuevoTelefono };
-    try {
-      const res = await fetch('https://pastillapp.onrender.com/api/pacientes/', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(datos)
-      });
-      if (res.ok) {
-        fetchPacientes();
-        setNuevoNombre(""); setNuevoApellido(""); setNuevoTelefono("");
-        modalPaciente.onClose();
-        toast({ title: "Paciente guardado", status: "success" });
-      }
-    } catch (e) { console.error(e); }
+    } catch (e) { console.error("Error al actualizar:", e); }
   };
 
   const actualizarPrecio = async (id, nuevoPrecio) => {
@@ -131,22 +101,50 @@ function App() {
     } catch (e) { console.error(e); }
   };
 
-  // --- FUNCIÓN PARA COBRAR (MARCAR ENTREGADO) ---
-  const marcarComoEntregado = async (id) => {
+  // --- 5. FUNCIONES POST ---
+  const guardarPedido = async () => {
+    if (!pacienteSeleccionado || lineasPedido.some(l => !l.productoId || !l.cantidad)) {
+      toast({ title: "Faltan datos", status: "warning" });
+      return;
+    }
+    const datosPedido = {
+      paciente: pacienteSeleccionado.id,
+      detalles: lineasPedido.map(l => ({
+        producto: parseInt(l.productoId),
+        cantidad: parseInt(l.cantidad)
+      }))
+    };
     try {
-      const res = await fetch(`https://pastillapp.onrender.com/api/ventas/pedidos/${id}/`, {
-        method: 'PATCH',
+      const res = await fetch('https://pastillapp.onrender.com/api/ventas/pedidos/', {
+        method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ pagado: true })
+        body: JSON.stringify(datosPedido)
       });
       if (res.ok) {
-        toast({ title: "Pedido cobrado", status: "success", duration: 2000 });
-        fetchPedidos(); 
+        fetchPedidos(); fetchProductos(); cerrarLimpiarPedido();
+        toast({ title: "Venta guardada", status: "success" });
       }
     } catch (e) { console.error(e); }
   };
 
-  // --- 5. LOGICA UI ---
+  const guardarPaciente = async () => {
+    const datos = { nombre: nuevoNombre, apellido: nuevoApellido, telefono: nuevoTelefono };
+    try {
+      const res = await fetch('https://pastillapp.onrender.com/api/pacientes/', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(datos)
+      });
+      if (res.ok) {
+        fetchPacientes();
+        setNuevoNombre(""); setNuevoApellido(""); setNuevoTelefono("");
+        modalPaciente.onClose();
+        toast({ title: "Paciente guardado", status: "success" });
+      }
+    } catch (e) { console.error(e); }
+  };
+
+  // --- 6. LOGICA UI ---
   const agregarFila = () => setLineasPedido([...lineasPedido, { productoId: "", cantidad: "" }]);
   const eliminarFila = (i) => setLineasPedido(lineasPedido.filter((_, idx) => idx !== i));
   const actualizarFila = (i, campo, val) => {
@@ -160,232 +158,159 @@ function App() {
     modalPedido.onClose();
   };
 
-  const actualizarEstadoPedido = async (id, campo, valorActual) => {
-  try {
-    const res = await fetch(`https://pastillapp.onrender.com/api/ventas/pedidos/${id}/`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      // Aquí enviamos el nombre del campo (pagado o entregado) y su valor opuesto
-      body: JSON.stringify({ [campo]: !valorActual }) 
-    });
-    
-    if (res.ok) {
-      toast({ 
-        title: `Pedido actualizado`, 
-        status: "success", 
-        duration: 2000 
-      });
-      fetchPedidos(); // Actualiza la lista para que cambien los colorcitos
-    }
-  } catch (e) { console.error("Error al actualizar:", e); }
-};
-
-  // --- 6. CÁLCULOS AUXILIARES ---
-  // Filtramos los pedidos que NO están pagos para el panel derecho
-  const pedidosPendientes = pedidos.filter(p => !p.pagado);
-  // Filtramos los que NO están pagos (tu código actual)
+  // --- 7. FILTROS ---
+  const pedidosPendientesEntrega = pedidos.filter(p => !p.entregado);
   const pedidosPendientesPago = pedidos.filter(p => !p.pagado);
 
-// NUEVO: Filtramos los que NO están entregados
-  const pedidosPendientesEntrega = pedidos.filter(p => !p.entregado);
-
   return (
-    // CAMBIO: Usamos container.xl para tener más ancho y que entre el panel lateral
     <Container maxW="container.xl" py={10}>
       <Heading color="purple.600" mb={8} textAlign="center">Pastillapp 💊</Heading>
 
       <Tabs isFitted variant='soft-rounded' colorScheme='purple'>
         <TabList mb='1em'>
-          <Tab>📋 Pedidos</Tab>
+          <Tab>📝 Pedidos</Tab>
+          <Tab>📜 Historial</Tab>
           <Tab>👥 Pacientes</Tab>
           <Tab>💊 Inventario</Tab>
         </TabList>
 
         <TabPanels>
           
-          {/* --- TAB 1: PANTALLA DIVIDIDA (HISTORIAL + DEUDORES) --- */}
+          {/* TAB 1: OPERACIONES (Día a día) */}
           <TabPanel>
             <Flex justify="space-between" mb={6}>
-              <Text fontSize="xl" fontWeight="bold">Gestión de Ventas</Text>
+              <Text fontSize="xl" fontWeight="bold">Tareas Pendientes</Text>
               <Button colorScheme="purple" onClick={modalPedido.onOpen}>+ Nueva Venta</Button>
             </Flex>
 
-            {/* Cambiamos a 4 columnas para que el historial sea ancho y los paneles entren bien */}
-            <SimpleGrid columns={{ base: 1, md: 4 }} spacing={6}>
+            <SimpleGrid columns={{ base: 1, md: 2 }} spacing={10}>
               
-              {/* PANEL IZQUIERDO: A ENTREGAR */}
+              {/* PANEL A ENTREGAR */}
               <Box>
-                <Box position="sticky" top="20px">
-                  <Card bg="blue.50" borderWidth="1px" borderColor="blue.200" shadow="md">
-                    <CardHeader pb={0}>
-                      <Heading size="md" color="blue.600">📦 A Entregar</Heading>
-                      <Text fontSize="sm" color="blue.400">Pendientes de despacho</Text>
-                    </CardHeader>
-                    <CardBody>
-                      {pedidosPendientesEntrega.length === 0 ? (
-                        <Text color="gray.500" fontStyle="italic">Todo entregado. ✨</Text>
-                      ) : (
-                        <Stack spacing={3}>
-                          {pedidosPendientesEntrega.map(p => (
-                            <Box key={p.id} p={3} bg="white" borderRadius="md" shadow="sm" borderLeft="4px solid" borderColor="blue.400">
-                              <Text fontWeight="bold" fontSize="sm">{p.nombre_paciente}</Text>
-                              <Text fontSize="xs" color="gray.600">
-                                {p.detalles.map(d => `${d.cantidad}u`).join(" + ")}
-                              </Text>
-                              <Button size="xs" colorScheme="blue" variant="outline" mt={2} w="full" onClick={() => actualizarEstadoPedido(p.id, 'entregado', p.entregado)}>
-                                Marcar Entregado
-                              </Button>
+                <Card bg="blue.50" borderTop="4px solid" borderColor="blue.400" shadow="md">
+                  <CardHeader pb={2}><Heading size="md" color="blue.600">📦 Por Repartir</Heading></CardHeader>
+                  <CardBody>
+                    {pedidosPendientesEntrega.length === 0 ? <Text italic>Todo al día ✨</Text> : (
+                      <Stack spacing={4}>
+                        {pedidosPendientesEntrega.map(p => (
+                          <Box key={p.id} p={3} bg="white" borderRadius="md" shadow="sm">
+                            <Text fontWeight="bold">{p.nombre_paciente}</Text>
+                            {p.detalles.map(d => (
+                              <Text key={d.id} fontSize="xs" color="gray.600">• {d.cantidad} {d.nombre_producto}</Text>
+                            ))}
+                            <Button size="xs" colorScheme="blue" mt={2} w="full" onClick={() => actualizarEstadoPedido(p.id, 'entregado', p.entregado)}>
+                              Marcar Entregado
+                            </Button>
+                          </Box>
+                        ))}
+                      </Stack>
+                    )}
+                  </CardBody>
+                </Card>
+              </Box>
+
+              {/* PANEL A COBRAR */}
+              <Box>
+                <Card bg="red.50" borderTop="4px solid" borderColor="red.400" shadow="md">
+                  <CardHeader pb={2}><Heading size="md" color="red.600">💰 Por Cobrar</Heading></CardHeader>
+                  <CardBody>
+                    {pedidosPendientesPago.length === 0 ? <Text italic>Caja al día 💵</Text> : (
+                      <Stack spacing={4}>
+                        {pedidosPendientesPago.map(p => (
+                          <Box key={p.id} p={3} bg="white" borderRadius="md" shadow="sm">
+                            <Text fontWeight="bold">{p.nombre_paciente}</Text>
+                            <Box my={1}>
+                              {p.detalles.map(d => (
+                                <Text key={d.id} fontSize="xs" color="gray.500">{d.cantidad}x {d.nombre_producto}</Text>
+                              ))}
                             </Box>
-                          ))}
-                        </Stack>
-                      )}
-                    </CardBody>
-                  </Card>
-                </Box>
+                            <Flex justify="space-between" align="center" mt={2}>
+                              <Text fontWeight="bold" color="red.600">${p.total}</Text>
+                              <Button size="xs" colorScheme="red" onClick={() => actualizarEstadoPedido(p.id, 'pagado', p.pagado)}>
+                                Cobrar
+                              </Button>
+                            </Flex>
+                          </Box>
+                        ))}
+                      </Stack>
+                    )}
+                  </CardBody>
+                </Card>
               </Box>
-
-              {/* COLUMNA CENTRAL (Historial): Ocupa las 2 columnas del medio */}
-              <Box gridColumn={{ md: "span 2" }}>
-                <Text fontSize="lg" mb={4} fontWeight="bold" color="gray.600">📜 Historial Completo</Text>
-                <Stack spacing={4}>
-                  {/* Este es el mapeo que hace que aparezcan los pedidos */}
-                  {pedidos && pedidos.map(p => (
-                    <Box 
-                      key={p.id} 
-                      p={4} 
-                      shadow="sm" 
-                      borderWidth="1px" 
-                      borderRadius="xl" 
-                      bg="white" 
-                      borderLeft="5px solid" 
-                      borderColor={p.pagado && p.entregado ? "green.400" : "orange.400"}
-                    >
-                      <Flex justify="space-between" align="center" mb={2}>
-                        <Text fontWeight="bold" fontSize="lg" color="purple.800">
-                          {p.nombre_paciente}
-                        </Text>
-                        <Stack direction="row">
-                          <Badge colorScheme={p.pagado ? "green" : "red"}>
-                            {p.pagado ? "PAGO" : "DEUDA"}
-                          </Badge>
-                          <Badge colorScheme={p.entregado ? "blue" : "gray"}>
-                            {p.entregado ? "ENTREGADO" : "PENDIENTE"}
-                          </Badge>
-                        </Stack>
-                      </Flex>
-                      
-                      <Text fontSize="sm" color="gray.600" mb={3}>
-                        📦 {p.detalles.map(d => `${d.cantidad} ${d.nombre_producto}`).join(" + ")}
-                      </Text>
-
-                      <Divider mb={3} />
-
-                      {/* BOTONES DE ACCIÓN RÁPIDA */}
-                      <Flex gap={4}>
-                        <Button 
-                          size="xs" 
-                          flex={1} 
-                          colorScheme="green" 
-                          variant="outline" 
-                          onClick={() => actualizarEstadoPedido(p.id, 'pagado', p.pagado)}
-                        >
-                          {p.pagado ? "Quitar Pago" : "Cobrar $"}
-                        </Button>
-                        <Button 
-                          size="xs" 
-                          flex={1} 
-                          colorScheme="blue" 
-                          variant="outline" 
-                          onClick={() => actualizarEstadoPedido(p.id, 'entregado', p.entregado)}
-                        >
-                          {p.entregado ? "Quitar Entrega" : "Entregar 📦"}
-                        </Button>
-                      </Flex>
-
-                      <Text fontWeight="bold" color="green.600" mt={3} textAlign="right">
-                        Total: ${p.total}
-                      </Text>
-                    </Box>
-                  ))}
-                </Stack>
-              </Box>
-              {/* PANEL DERECHO: A COBRAR (Tu panel actual) */}
-              <Box>
-                <Box position="sticky" top="20px">
-                  <Card bg="red.50" borderWidth="1px" borderColor="red.200" shadow="md">
-                    <CardHeader pb={0}>
-                      <Heading size="md" color="red.600">⚠️ A Cobrar</Heading>
-                      <Text fontSize="sm" color="red.400">Cuentas pendientes</Text>
-                    </CardHeader>
-                    <CardBody>
-                      {/* ... resto de tu código de pedidosPendientesPago ... */}
-                    </CardBody>
-                  </Card>
-                </Box>
-              </Box>
-
             </SimpleGrid>
           </TabPanel>
 
-          {/* TAB 2: PACIENTES (Igual que antes) */}
+          {/* TAB 2: HISTORIAL COMPLETO */}
           <TabPanel>
-            <Flex justify="space-between" mb={6}>
-              <Text fontSize="xl" fontWeight="bold">Agenda</Text>
-              <Button colorScheme="green" onClick={modalPaciente.onOpen}>+ Nuevo Paciente</Button>
-            </Flex>
+            <Heading size="md" mb={4} color="gray.600">Registro General</Heading>
             <Stack spacing={3}>
-              {pacientes.map(p => (
-                <Box key={p.id} p={3} borderWidth="1px" borderRadius="lg">
-                  <Text fontWeight="bold">{p.apellido}, {p.nombre}</Text>
-                  <Text fontSize="xs" color="gray.500">📞 {p.telefono || "---"}</Text>
+              {pedidos.slice().reverse().map(p => (
+                <Box key={p.id} p={4} borderWidth="1px" borderRadius="lg" bg="white" shadow="sm">
+                  <Flex justify="space-between">
+                    <Text fontWeight="bold" fontSize="lg">{p.nombre_paciente}</Text>
+                    <Text fontSize="xs" color="gray.500">{new Date(p.fecha_venta).toLocaleString()}</Text>
+                  </Flex>
+                  <Text fontSize="sm" my={1}>Total: <b>${p.total}</b></Text>
+                  <Flex gap={2} mt={2}>
+                    <Badge colorScheme={p.pagado ? "green" : "red"}>{p.pagado ? "PAGO" : "DEBE"}</Badge>
+                    <Badge colorScheme={p.entregado ? "blue" : "gray"}>{p.entregado ? "ENTREGADO" : "PENDIENTE"}</Badge>
+                  </Flex>
                 </Box>
               ))}
             </Stack>
           </TabPanel>
 
-          {/* TAB 3: INVENTARIO (Igual que antes) */}
+          {/* TAB 3: PACIENTES */}
           <TabPanel>
             <Flex justify="space-between" mb={6}>
-              <Text fontSize="xl" fontWeight="bold">Control de Inventario</Text>
+              <Text fontSize="xl" fontWeight="bold">Agenda de Clientes</Text>
+              <Button colorScheme="green" onClick={modalPaciente.onOpen}>+ Nuevo Paciente</Button>
             </Flex>
-            <Stack spacing={4}>
-              {productos.map(p => (
-                <Box key={p.id} p={4} shadow="md" borderWidth="1px" borderRadius="xl" bg="white">
-                  <Flex justify="space-between" align="center" mb={3}>
-                    <Text fontWeight="bold" fontSize="lg" color="purple.700">{p.get_color_display}</Text>
-                    <Badge colorScheme={p.stock > 10 ? "green" : "red"} fontSize="0.9em">{p.stock} Unidades</Badge>
-                  </Flex>
-                  <Divider mb={3} />
-                  <Flex direction="column" gap={3}>
-                    <Flex justify="space-between" align="center">
-                      <Text fontSize="sm" color="gray.600" w="80px">Precio ($):</Text>
-                      <Flex gap={2}>
-                        <Input type="number" defaultValue={p.precio_actual} w="100px" size="sm" id={`precio-${p.id}`} />
-                        <Button size="sm" colorScheme="blue" onClick={() => {
-                            const val = document.getElementById(`precio-${p.id}`).value;
-                            actualizarPrecio(p.id, val);
-                        }}>💾</Button>
-                      </Flex>
-                    </Flex>
-                    <Flex justify="space-between" align="center">
-                      <Text fontSize="sm" color="gray.600" w="80px">Stock (u):</Text>
-                      <Flex gap={2}>
-                        <Input type="number" defaultValue={p.stock} w="100px" size="sm" id={`stock-${p.id}`} />
-                        <Button size="sm" colorScheme="green" onClick={() => {
-                            const val = document.getElementById(`stock-${p.id}`).value;
-                            actualizarStock(p.id, val);
-                        }}>📦</Button>
-                      </Flex>
-                    </Flex>
-                  </Flex>
+            <SimpleGrid columns={{ base: 1, md: 3 }} spacing={4}>
+              {pacientes.map(p => (
+                <Box key={p.id} p={4} borderWidth="1px" borderRadius="xl" shadow="sm">
+                  <Text fontWeight="bold" fontSize="md">{p.apellido}, {p.nombre}</Text>
+                  <Text fontSize="sm" color="gray.600">📞 {p.telefono || "Sin teléfono"}</Text>
                 </Box>
               ))}
-            </Stack>
+            </SimpleGrid>
           </TabPanel>
+
+          {/* TAB 4: INVENTARIO */}
+          <TabPanel>
+            <Heading fontSize="xl" mb={6}>Stock y Precios</Heading>
+            <SimpleGrid columns={{ base: 1, md: 3 }} spacing={6}>
+              {productos.map(p => (
+                <Box key={p.id} p={4} shadow="md" borderWidth="1px" borderRadius="xl" bg="white">
+                  <Flex justify="space-between" align="center" mb={4}>
+                    <Text fontWeight="bold" fontSize="lg" color="purple.700">{p.get_color_display}</Text>
+                    <Badge colorScheme={p.stock > 10 ? "green" : "red"}>{p.stock} u.</Badge>
+                  </Flex>
+                  <Stack spacing={3}>
+                    <Flex align="center" justify="space-between">
+                      <Text fontSize="xs">Precio $</Text>
+                      <Flex gap={2}>
+                        <Input size="sm" w="80px" defaultValue={p.precio_actual} id={`pr-${p.id}`} />
+                        <Button size="sm" onClick={() => actualizarPrecio(p.id, document.getElementById(`pr-${p.id}`).value)}>💾</Button>
+                      </Flex>
+                    </Flex>
+                    <Flex align="center" justify="space-between">
+                      <Text fontSize="xs">Stock</Text>
+                      <Flex gap={2}>
+                        <Input size="sm" w="80px" defaultValue={p.stock} id={`st-${p.id}`} />
+                        <Button size="sm" colorScheme="green" onClick={() => actualizarStock(p.id, document.getElementById(`st-${p.id}`).value)}>📦</Button>
+                      </Flex>
+                    </Flex>
+                  </Stack>
+                </Box>
+              ))}
+            </SimpleGrid>
+          </TabPanel>
+
         </TabPanels>
       </Tabs>
 
-      {/* MODALES (Igual que antes) */}
+      {/* --- MODALES --- */}
       <Modal isOpen={modalPedido.isOpen} onClose={cerrarLimpiarPedido} size="lg">
         <ModalOverlay />
         <ModalContent>
@@ -394,7 +319,7 @@ function App() {
             <Stack spacing={4}>
               <FormControl isRequired>
                 <FormLabel>Paciente</FormLabel>
-                <Input placeholder="Buscar..." value={busqueda} onChange={(e) => {
+                <Input placeholder="Escribí para buscar..." value={busqueda} onChange={(e) => {
                   setBusqueda(e.target.value);
                   const filt = pacientes.filter(p => 
                     p.nombre.toLowerCase().includes(e.target.value.toLowerCase()) || 
@@ -415,18 +340,18 @@ function App() {
               </FormControl>
               <Divider />
               {lineasPedido.map((linea, index) => (
-                <Flex key={index} gap={2}>
-                  <Select placeholder="Seleccioná" value={linea.productoId} onChange={(e) => actualizarFila(index, 'productoId', e.target.value)}>
+                <Flex key={index} gap={2} align="center">
+                  <Select placeholder="Medicamento" value={linea.productoId} onChange={(e) => actualizarFila(index, 'productoId', e.target.value)}>
                     {productos.map(p => <option key={p.id} value={p.id}>{p.get_color_display} (${p.precio_actual})</option>)}
                   </Select>
                   <Input type="number" placeholder="Cant." w="80px" value={linea.cantidad} onChange={(e) => actualizarFila(index, 'cantidad', e.target.value)} />
                   {lineasPedido.length > 1 && <Button colorScheme="red" variant="ghost" onClick={() => eliminarFila(index)}>x</Button>}
                 </Flex>
               ))}
-              <Button size="xs" onClick={agregarFila}>+ Agregar ítem</Button>
-              <Box p={4} bg="purple.50" borderRadius="md" borderLeft="4px solid" borderColor="purple.500">
-                <Text fontWeight="bold" textAlign="right" color="purple.800">
-                  Total a cobrar: ${lineasPedido.reduce((acc, l) => {
+              <Button size="xs" variant="link" colorScheme="purple" onClick={agregarFila}>+ Agregar otro producto</Button>
+              <Box p={4} bg="purple.50" borderRadius="md" textAlign="right">
+                <Text fontWeight="bold" color="purple.800">
+                  Total Final: ${lineasPedido.reduce((acc, l) => {
                     const prod = productos.find(p => p.id === parseInt(l.productoId));
                     return acc + (prod ? parseFloat(prod.precio_actual) * (parseInt(l.cantidad) || 0) : 0);
                   }, 0)}
@@ -435,16 +360,17 @@ function App() {
             </Stack>
           </ModalBody>
           <ModalFooter>
-            <Button colorScheme="purple" mr={3} onClick={guardarPedido}>Confirmar</Button>
-            <Button onClick={cerrarLimpiarPedido}>Cancelar</Button>
+            <Button colorScheme="purple" mr={3} onClick={guardarPedido}>Confirmar Venta</Button>
+            <Button variant="ghost" onClick={cerrarLimpiarPedido}>Cerrar</Button>
           </ModalFooter>
         </ModalContent>
       </Modal>
 
+      {/* MODAL NUEVO PACIENTE */}
       <Modal isOpen={modalPaciente.isOpen} onClose={modalPaciente.onClose}>
         <ModalOverlay />
         <ModalContent>
-          <ModalHeader>Nuevo Paciente</ModalHeader>
+          <ModalHeader>Nuevo Registro de Paciente</ModalHeader>
           <ModalBody>
             <Stack spacing={3}>
               <Input placeholder="Nombre" value={nuevoNombre} onChange={(e) => setNuevoNombre(e.target.value)} />
@@ -454,7 +380,7 @@ function App() {
           </ModalBody>
           <ModalFooter>
             <Button colorScheme="green" mr={3} onClick={guardarPaciente}>Guardar</Button>
-            <Button onClick={modalPaciente.onClose}>Cancelar</Button>
+            <Button variant="ghost" onClick={modalPaciente.onClose}>Cancelar</Button>
           </ModalFooter>
         </ModalContent>
       </Modal>
