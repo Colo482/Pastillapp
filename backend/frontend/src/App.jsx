@@ -164,9 +164,9 @@ function App() {
 
   return (
     <Container maxW="container.xl" py={10}>
-      <Heading color="purple.600" mb={8} textAlign="center">Pastillapp 💊</Heading>
+      <Heading color="blue.600" mb={8} textAlign="center">Pastillapp 💊</Heading>
 
-      <Tabs isFitted variant='soft-rounded' colorScheme='purple'>
+      <Tabs isFitted variant='soft-rounded' colorScheme='blue'>
         <TabList mb='1em'>
           <Tab>📝 Pedidos</Tab>
           <Tab>📜 Historial</Tab>
@@ -180,7 +180,7 @@ function App() {
           <TabPanel>
             <Flex justify="space-between" mb={6}>
               <Text fontSize="xl" fontWeight="bold">Tareas Pendientes</Text>
-              <Button colorScheme="purple" onClick={modalPedido.onOpen}>+ Nueva Venta</Button>
+              <Button colorScheme="blue" onClick={modalPedido.onOpen}>+ Nueva Venta</Button>
             </Flex>
 
             <SimpleGrid columns={{ base: 1, md: 2 }} spacing={10}>
@@ -198,7 +198,7 @@ function App() {
                             {p.detalles.map(d => (
                               <Text key={d.id} fontSize="xs" color="gray.600">• {d.cantidad} {d.nombre_producto}</Text>
                             ))}
-                            <Button size="s" colorScheme="blue" mt={2} w="full" onClick={() => actualizarEstadoPedido(p.id, 'entregado', p.entregado)}>
+                            <Button size="xs" colorScheme="blue" mt={2} w="full" onClick={() => actualizarEstadoPedido(p.id, 'entregado', p.entregado)}>
                               Marcar Entregado
                             </Button>
                           </Box>
