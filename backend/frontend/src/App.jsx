@@ -244,11 +244,71 @@ function App() {
                 </Box>
               </Box>
 
-              {/* COLUMNA CENTRAL (Historial): Ahora ocupa 2 columnas de espacio */}
+              {/* COLUMNA CENTRAL (Historial): Ocupa las 2 columnas del medio */}
               <Box gridColumn={{ md: "span 2" }}>
-                {/* Aquí va tu Stack con el mapeo de pedidos que corregimos antes */}
-              </Box>
+                <Text fontSize="lg" mb={4} fontWeight="bold" color="gray.600">📜 Historial Completo</Text>
+                <Stack spacing={4}>
+                  {/* Este es el mapeo que hace que aparezcan los pedidos */}
+                  {pedidos && pedidos.map(p => (
+                    <Box 
+                      key={p.id} 
+                      p={4} 
+                      shadow="sm" 
+                      borderWidth="1px" 
+                      borderRadius="xl" 
+                      bg="white" 
+                      borderLeft="5px solid" 
+                      borderColor={p.pagado && p.entregado ? "green.400" : "orange.400"}
+                    >
+                      <Flex justify="space-between" align="center" mb={2}>
+                        <Text fontWeight="bold" fontSize="lg" color="purple.800">
+                          {p.nombre_paciente}
+                        </Text>
+                        <Stack direction="row">
+                          <Badge colorScheme={p.pagado ? "green" : "red"}>
+                            {p.pagado ? "PAGO" : "DEUDA"}
+                          </Badge>
+                          <Badge colorScheme={p.entregado ? "blue" : "gray"}>
+                            {p.entregado ? "ENTREGADO" : "PENDIENTE"}
+                          </Badge>
+                        </Stack>
+                      </Flex>
+                      
+                      <Text fontSize="sm" color="gray.600" mb={3}>
+                        📦 {p.detalles.map(d => `${d.cantidad} ${d.nombre_producto}`).join(" + ")}
+                      </Text>
 
+                      <Divider mb={3} />
+
+                      {/* BOTONES DE ACCIÓN RÁPIDA */}
+                      <Flex gap={4}>
+                        <Button 
+                          size="xs" 
+                          flex={1} 
+                          colorScheme="green" 
+                          variant="outline" 
+                          onClick={() => actualizarEstadoPedido(p.id, 'pagado', p.pagado)}
+                        >
+                          {p.pagado ? "Quitar Pago" : "Cobrar $"}
+                        </Button>
+                        <Button 
+                          size="xs" 
+                          flex={1} 
+                          colorScheme="blue" 
+                          variant="outline" 
+                          onClick={() => actualizarEstadoPedido(p.id, 'entregado', p.entregado)}
+                        >
+                          {p.entregado ? "Quitar Entrega" : "Entregar 📦"}
+                        </Button>
+                      </Flex>
+
+                      <Text fontWeight="bold" color="green.600" mt={3} textAlign="right">
+                        Total: ${p.total}
+                      </Text>
+                    </Box>
+                  ))}
+                </Stack>
+              </Box>
               {/* PANEL DERECHO: A COBRAR (Tu panel actual) */}
               <Box>
                 <Box position="sticky" top="20px">
