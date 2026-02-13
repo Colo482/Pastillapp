@@ -190,7 +190,7 @@ function App() {
                 <Card bg="blue.50" borderTop="4px solid" borderColor="blue.400" shadow="md">
                   <CardHeader pb={2}><Heading size="md" color="blue.600">📦 Por Repartir</Heading></CardHeader>
                   <CardBody>
-                    {pedidosPendientesEntrega.length === 0 ? <Text italic>Todo al día ✨</Text> : (
+                    {pedidosPendientesEntrega.length === 0 ? <Text italic>Todo al día ✅</Text> : (
                       <Stack spacing={4}>
                         {pedidosPendientesEntrega.map(p => (
                           <Box key={p.id} p={3} bg="white" borderRadius="md" shadow="sm">
@@ -198,7 +198,7 @@ function App() {
                             {p.detalles.map(d => (
                               <Text key={d.id} fontSize="xs" color="gray.600">• {d.cantidad} {d.nombre_producto}</Text>
                             ))}
-                            <Button size="xs" colorScheme="blue" mt={2} w="full" onClick={() => actualizarEstadoPedido(p.id, 'entregado', p.entregado)}>
+                            <Button size="s" colorScheme="blue" mt={2} w="full" onClick={() => actualizarEstadoPedido(p.id, 'entregado', p.entregado)}>
                               Marcar Entregado
                             </Button>
                           </Box>
