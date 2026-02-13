@@ -10,9 +10,9 @@ class Paciente(models.Model):
     def get_nombre_completo(self):
         return f"{self.nombre} {self.apellido}"
     
-    # Esto sirve para que en el panel de Django y en los selects aparezca el nombre, no se q onda dsp veo si me da error lo saco
     def __str__(self):
-        return self.__get_nombre_completo()
+        # En vez de llamar a un método privado, armamos el nombre acá directo
+        return f"{self.apellido}, {self.nombre}"
 
     class Meta:
         verbose_name = "Paciente"
