@@ -79,7 +79,7 @@ DATABASES = {
     'default': dj_database_url.config(
         # Si no hay base de datos en la nube, usa la local (SQLite)
         default='sqlite:///db.sqlite3', 
-        conn_max_age=600
+        conn_max_age=0
     )
 }
 
