@@ -308,16 +308,14 @@ function App() {
             </SimpleGrid>
           </TabPanel>
 
-        </TabPanels>
-
-        <TabPanel>
-          <Container>
-            <Card>
+          <TabPanel>
+            <Container>
+              <Card>
             
-            </Card>
-        </Container>
-
-        </TabPanel>
+              </Card>
+            </Container>
+          </TabPanel>
+        </TabPanels>
       </Tabs>
 
 
