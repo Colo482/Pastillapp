@@ -326,7 +326,7 @@ function App() {
                 </CardBody>
               </Card>
               <text> 
-                Aca esta text con t minuscula
+                Aca esta text con t minuscul
               </text>
 
             </Container>
