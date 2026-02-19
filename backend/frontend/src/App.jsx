@@ -310,25 +310,27 @@ function App() {
 
           <TabPanel>
             <SimpleGrid columns={{ base: 1,md: 2 }} spacing={10}>
-              <Container>
-                <Text>
-                  Este es el container
-                </Text>
-                <Card>
-                  <CardHeader>
-                    <Heading size="md">
-                      Hola, este es el header de {p.nombre_paciente}
-                    </Heading>
-                  </CardHeader>
-                  <CardBody>
-                    <Text frontSize="sm" color="orange">Este es el texto de cardbody solo con color orange</Text>
-                    <Button size="xs" colorScheme='orange.900'> boton con orange.900</Button>
-                  </CardBody>
-                </Card>
-                <Text> 
-                  Aca esta text con t minuscul error si o si con mayuscula
-                </Text>
-              </Container>
+              {pacientes.map((p) => (
+                <Container key={p.id}>
+                  <Text>
+                    Este es el container
+                  </Text>
+                  <Card>
+                    <CardHeader>
+                      <Heading size="md">
+                        Hola, este es el header de {p.nombre_paciente}
+                      </Heading>
+                    </CardHeader>
+                    <CardBody>
+                      <Text fontSize="sm" color="orange.500">Este es el texto de cardbody solo con color orange.500</Text>
+                      <Button size="xs" colorScheme='orange'> boton con orange</Button>
+                    </CardBody>
+                  </Card>
+                  <Text> 
+                    Aca esta text con t minuscul error si o si con mayuscula
+                  </Text>
+                </Container>
+              ))}
             </SimpleGrid>
             <Container>
               <Card>
