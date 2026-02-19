@@ -309,7 +309,18 @@ function App() {
           </TabPanel>
 
         </TabPanels>
+        <Container>
+          <Card>
+            
+          </Card>
+        </Container>
+
+        <TabPanel>
+
+        </TabPanel>
       </Tabs>
+
+
 
       {/* --- MODALES --- */}
       <Modal isOpen={modalPedido.isOpen} onClose={cerrarLimpiarPedido} size="lg">
