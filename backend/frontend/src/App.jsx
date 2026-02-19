@@ -314,25 +314,27 @@ function App() {
                 <Text>
                   Este es el container
                 </Text>
-              <Card>
-                <CardHeader>
-                  <Heading size="md">
-                    Hola, este es el header de {p.nombre_paciente}
-                  </Heading>
-                </CardHeader>
-                <CardBody>
-                  <Text frontSize="sm" color="orange.100">Este es el texto de cardbody</Text>
-                  <Button size="xs" colorScheme='orange.900'> boton</Button>
-                </CardBody>
-              </Card>
-              <text> 
-                Aca esta text con t minuscul
-              </text>
-
-            </Container>
+                <Card>
+                  <CardHeader>
+                    <Heading size="md">
+                      Hola, este es el header de {p.nombre_paciente}
+                    </Heading>
+                  </CardHeader>
+                  <CardBody>
+                    <Text frontSize="sm" color="orange">Este es el texto de cardbody solo con color orange</Text>
+                    <Button size="xs" colorScheme='orange.900'> boton con orange.900</Button>
+                  </CardBody>
+                </Card>
+                <Text> 
+                  Aca esta text con t minuscul error si o si con mayuscula
+                </Text>
+              </Container>
             </SimpleGrid>
             <Container>
               <Card>
+                <CardHeader>
+                  cardheaderr
+                </CardHeader>
             
               </Card>
             </Container>
