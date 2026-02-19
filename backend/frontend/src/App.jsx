@@ -309,6 +309,24 @@ function App() {
           </TabPanel>
 
           <TabPanel>
+            <SimpleGrid>
+              <Container>
+                <Text>
+                  Este es el container
+                </Text>
+              <Card>
+                <CardHeader>
+                  <Heading size="md">
+                    Hola, este es el header
+                  </Heading>
+                </CardHeader>
+                <CardBody>
+                  <Button> boton</Button>
+                </CardBody>
+            
+              </Card>
+            </Container>
+            </SimpleGrid>
             <Container>
               <Card>
             
