@@ -172,6 +172,7 @@ function App() {
           <Tab>📜 Historial</Tab>
           <Tab>👥 Pacientes</Tab>
           <Tab>💊 Inventario</Tab>
+          <Tab> Mis Gastos</Tab>
         </TabList>
 
         <TabPanels>
