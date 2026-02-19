@@ -309,7 +309,7 @@ function App() {
           </TabPanel>
 
           <TabPanel>
-            <SimpleGrid>
+            <SimpleGrid columns={{ base: 1,md: 2 }} spacing={10}>
               <Container>
                 <Text>
                   Este es el container
@@ -317,14 +317,18 @@ function App() {
               <Card>
                 <CardHeader>
                   <Heading size="md">
-                    Hola, este es el header
+                    Hola, este es el header de {p.nombre_paciente}
                   </Heading>
                 </CardHeader>
                 <CardBody>
-                  <Button> boton</Button>
+                  <Text frontSize="sm" color="orange.100">Este es el texto de cardbody</Text>
+                  <Button size="xs" colorScheme='orange.900'> boton</Button>
                 </CardBody>
-            
               </Card>
+              <text> 
+                Aca esta text con t minuscula
+              </text>
+
             </Container>
             </SimpleGrid>
             <Container>
