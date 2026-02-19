@@ -309,13 +309,13 @@ function App() {
           </TabPanel>
 
         </TabPanels>
-        <Container>
-          <Card>
-            
-          </Card>
-        </Container>
 
         <TabPanel>
+          <Container>
+            <Card>
+            
+            </Card>
+        </Container>
 
         </TabPanel>
       </Tabs>
