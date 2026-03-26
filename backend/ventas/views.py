@@ -3,6 +3,9 @@ from rest_framework import viewsets
 from .models import Pedido
 from .serializers import PedidoSerializer
 
+from django.contrib.auth.models import User  # Esto es para manejar usuarios
+from django.http import HttpResponse         # Esto es para responder texto a la web
+
 # Un ViewSet maneja automáticamente las acciones: 
 # LIST (ver todos), CREATE (crear), RETRIEVE (ver uno), UPDATE y DELETE.
 class PedidoViewSet(viewsets.ModelViewSet):

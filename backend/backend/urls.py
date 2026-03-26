@@ -1,6 +1,8 @@
 from django.contrib import admin
 from django.urls import path, include
 
+from ventas.views import crear_admin_remoto
+
 urlpatterns = [
     path('admin/', admin.site.urls),
     
