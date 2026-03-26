@@ -21,6 +21,7 @@ ALLOWED_HOSTS = ['*']  # Desplegando en Render
 # Application definition
 
 INSTALLED_APPS = [
+    'simpleui',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -144,3 +145,15 @@ CORS_ALLOW_CREDENTIALS = True  # Permite que el celu envíe sesiones/cookies
 STATIC_URL = 'static/'
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
+
+# --- CONFIGURACIÓN SIMPLEUI ---
+SIMPLEUI_HOME_INFO = False  # Quita la publicidad de SimpleUI en el inicio
+SIMPLEUI_ANALYSIS = False   # Quita los gráficos por defecto que no sirven ahora
+SIMPLEUI_DEFAULT_THEME = 'cyan' # El azul/verde corporativo que combina con la foto
+
+# Personalizar los títulos del panel
+SIMPLEUI_CONFIG = {
+    'system_keep': False,
+    'menu_display': ['Pastillas', 'Pacientes', 'Ventas', 'Usuarios'],
+    'dynamic': True, # Permite que el menú sea más ágil
+}
