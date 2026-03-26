@@ -51,3 +51,14 @@ class PedidoAdmin(admin.ModelAdmin):
     def total_pedido_display(self, obj):
         return f"${obj.total_pedido}"
     total_pedido_display.short_description = "Total del Pedido"
+    # Dentro de la clase PedidoAdmin(admin.ModelAdmin):
+    # Esto le pone iconos a las acciones en SimpleUI
+    actions = ['make_paid', 'make_delivered']
+
+    def make_paid(self, request, queryset):
+        queryset.update(pagado=True)
+    make_paid.short_description = "💰 Marcar como Pagados"
+
+    def make_delivered(self, request, queryset):
+        queryset.update(entregado=True)
+    make_delivered.short_description = "📦 Marcar como Entregados"
