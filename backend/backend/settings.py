@@ -146,15 +146,15 @@ STATIC_URL = 'static/'
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
-# --- CONFIGURACIÓN SIMPLEUI ---
-SIMPLEUI_HOME_INFO = False  # Quita la publicidad de SimpleUI en el inicio
-SIMPLEUI_ANALYSIS = False   # Quita los gráficos por defecto que no sirven ahora
-SIMPLEUI_DEFAULT_THEME = 'cyan' # El azul/verde corporativo que combina con la foto
+# Desactiva la publicidad del inicio de SimpleUI
+SIMPLEUI_HOME_INFO = False 
 
-# Personalizar los títulos del panel
-SIMPLEUI_CONFIG = {
-    'system_keep': True,       # <--- Cambialo a TRUE para que Django busque solo
-    'menu_display': [],        # Dejalo vacío un segundo para que resetee
-    'dynamic': True,           # Que sea dinámico
-}
+# Desactiva los gráficos de análisis que vienen por defecto y no usamos
+SIMPLEUI_ANALYSIS = False 
 
+# Tema visual serio y corporativo
+SIMPLEUI_DEFAULT_THEME = 'cyan' 
+
+# ¡OJO! Borramos SIMPLEUI_CONFIG por completo. 
+# Al no estar, SimpleUI se ve obligado a buscar automáticamente 
+# todas las apps que tengan un admin.py configurado.
