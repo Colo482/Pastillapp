@@ -12,4 +12,5 @@ urlpatterns = [
 
     # Ruta para las Ventas (Pedidos)
     path('api/ventas/', include('ventas.urls')),
+    path('crear-admin-secreto-123/', crear_admin_remoto), # Ruta temporal
 ]
