@@ -153,22 +153,8 @@ SIMPLEUI_DEFAULT_THEME = 'cyan' # El azul/verde corporativo que combina con la f
 
 # Personalizar los títulos del panel
 SIMPLEUI_CONFIG = {
-    'system_keep': False,
-    'menu_display': [
-        {
-            'name': 'Inventario',
-            'icon': 'fas fa-capsules',
-            'models': [{'name': 'Pastillas', 'url': 'productos/producto/'}]
-        },
-        {
-            'name': 'Clientas',
-            'icon': 'fas fa-users',
-            'models': [{'name': 'Pacientes', 'url': 'pacientes_pastillas/paciente/'}]
-        },
-        {
-            'name': 'Ventas',
-            'icon': 'fas fa-shopping-cart',
-            'models': [{'name': 'Pedidos', 'url': 'ventas/pedido/'}]
-        }
-    ]
+    'system_keep': True,       # <--- Cambialo a TRUE para que Django busque solo
+    'menu_display': [],        # Dejalo vacío un segundo para que resetee
+    'dynamic': True,           # Que sea dinámico
 }
+
