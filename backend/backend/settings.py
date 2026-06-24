@@ -33,6 +33,7 @@ INSTALLED_APPS = [
     'pacientes_pastillas',
     'ventas',
     'productos',
+    'gastos',
     
 ]
 
@@ -158,3 +159,21 @@ SIMPLEUI_DEFAULT_THEME = 'cyan'
 # ¡OJO! Borramos SIMPLEUI_CONFIG por completo. 
 # Al no estar, SimpleUI se ve obligado a buscar automáticamente 
 # todas las apps que tengan un admin.py configurado.
+
+REST_FRAMEWORK = {
+    'DEFAULT_AUTHENTICATION_CLASSES': (
+        'rest_framework_simplejwt.authentication.JWTAuthentication',
+    ),
+    'DEFAULT_PERMISSION_CLASSES': (
+        'rest_framework.permissions.IsAuthenticated', # Esto protege todo por defecto
+    ),
+}
+
+from datetime import timedelta
+
+SIMPLE_JWT = {
+    'ACCESS_TOKEN_LIFETIME': timedelta(days=1),
+    'REFRESH_TOKEN_LIFETIME': timedelta(days=7),
+    'ROTATE_REFRESH_TOKENS': True,
+    'BLACKLIST_AFTER_ROTATION': True,
+}

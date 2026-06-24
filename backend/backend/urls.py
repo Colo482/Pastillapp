@@ -1,17 +1,18 @@
+# backend/urls.py
 from django.contrib import admin
 from django.urls import path, include
-
+from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 
 urlpatterns = [
     path('admin/', admin.site.urls),
     
-    # Ruta para los Productos (Pastillas) 
+    # Rutas de autenticación (Login)
+    path('api/token/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
+    path('api/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
+    
+    # Rutas de tus módulos actuales
     path('api/productos/', include('productos.urls')),
-
-    # Ruta para los Pacientes 
     path('api/pacientes/', include('pacientes_pastillas.urls')),
-
-    # Ruta para las Ventas (Pedidos)
     path('api/ventas/', include('ventas.urls')),
-
+    path('api/gastos/', include('gastos.urls')),
 ]

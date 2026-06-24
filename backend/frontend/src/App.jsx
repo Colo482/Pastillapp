@@ -4,14 +4,18 @@ import {
   Modal, ModalOverlay, ModalContent, ModalHeader, ModalBody, ModalCloseButton,
   FormControl, FormLabel, Input, useDisclosure, ModalFooter,
   List, ListItem, Tabs, TabList, TabPanels, Tab, TabPanel, Select, Divider,
-  SimpleGrid, Card, CardHeader, CardBody, CardFooter
+  SimpleGrid, Card, CardHeader, CardBody, CardFooter, RadioGroup, Radio
 } from '@chakra-ui/react'
 
 function App() {
-  // --- 1. ESTADOS ---
+  // --- 1. ESTADOS Y AUTENTICACIÓN ---
+  const [token, setToken] = useState(localStorage.getItem('token') || null);
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
   const [pedidos, setPedidos] = useState([]);
   const [pacientes, setPacientes] = useState([]);
   const [productos, setProductos] = useState([]);
+  const [gastos, setGastos] = useState([]); 
   
   const [busqueda, setBusqueda] = useState(""); 
   const [pacienteSeleccionado, setPacienteSeleccionado] = useState(null); 
@@ -21,22 +25,61 @@ function App() {
   const [nuevoNombre, setNuevoNombre] = useState("");
   const [nuevoApellido, setNuevoApellido] = useState("");
   const [nuevoTelefono, setNuevoTelefono] = useState("");
+  
+  // Nuevo estado para nuevo gasto
+  const [nuevoGasto, setNuevoGasto] = useState({ descripcion: "", monto: "", tipo: "EGRESO" });
 
   const modalPedido = useDisclosure(); 
   const modalPaciente = useDisclosure(); 
+  const modalGasto = useDisclosure();
   const toast = useToast();
 
-  // --- 2. EFECTOS ---
-  useEffect(() => { 
-    fetchPedidos(); 
-    fetchPacientes(); 
-    fetchProductos(); 
-  }, []);
+  // --- 2. FUNCION AUTH FETCH (La "Aduana") ---
+  const authFetch = async (url, options = {}) => {
+    const headers = {
+      ...options.headers,
+      'Authorization': `Bearer ${token}`,
+      'Content-Type': 'application/json'
+    };
+    const res = await fetch(url, { ...options, headers });
+    if (res.status === 401) { 
+      setToken(null); 
+      localStorage.removeItem('token'); 
+      toast({ title: "Sesión expirada, inicia sesión de nuevo", status: "error" });
+      throw new Error("No autorizado");
+    }
+    return res;
+  };
 
-  // --- 3. FUNCIONES GET ---
+  const handleLogin = async () => {
+    try {
+      const res = await fetch('https://pastillapp.onrender.com/api/token/', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, password })
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setToken(data.access);
+        localStorage.setItem('token', data.access);
+        toast({ title: "Bienvenido", status: "success" });
+      } else {
+        toast({ title: "Usuario o contraseña incorrectos", status: "error" });
+      }
+    } catch (e) { console.error(e); }
+  };
+
+  // --- 3. EFECTOS ---
+  useEffect(() => { 
+    if (token) {
+      fetchPedidos(); fetchPacientes(); fetchProductos(); fetchGastos();
+    }
+  }, [token]);
+
+  // --- 4. FUNCIONES GET ---
   const fetchProductos = async () => {
     try {
-      const res = await fetch('https://pastillapp.onrender.com/api/productos/');
+      const res = await authFetch('https://pastillapp.onrender.com/api/productos/');
       const data = await res.json();
       setProductos(Array.isArray(data) ? data : (data.results || []));
     } catch (e) { console.error(e); }
@@ -44,7 +87,7 @@ function App() {
 
   const fetchPacientes = async () => {
     try {
-      const res = await fetch('https://pastillapp.onrender.com/api/pacientes/'); 
+      const res = await authFetch('https://pastillapp.onrender.com/api/pacientes/'); 
       const data = await res.json();
       setPacientes(data); 
     } catch (e) { console.error(e); }
@@ -52,18 +95,25 @@ function App() {
 
   const fetchPedidos = async () => {
     try {
-      const res = await fetch('https://pastillapp.onrender.com/api/ventas/pedidos/');
+      const res = await authFetch('https://pastillapp.onrender.com/api/ventas/pedidos/');
       const data = await res.json();
       setPedidos(data);
     } catch (e) { console.error(e); }
   };
 
-  // --- 4. FUNCIONES DE ACTUALIZACIÓN (PATCH) ---
+  const fetchGastos = async () => {
+    try {
+      const res = await authFetch('https://pastillapp.onrender.com/api/gastos/movimientos/');
+      const data = await res.json();
+      setGastos(data);
+    } catch (e) { console.error(e); }
+  };
+
+  // --- 5. FUNCIONES DE ACTUALIZACIÓN (PATCH) ---
   const actualizarEstadoPedido = async (id, campo, valorActual) => {
     try {
-      const res = await fetch(`https://pastillapp.onrender.com/api/ventas/pedidos/${id}/`, {
+      const res = await authFetch(`https://pastillapp.onrender.com/api/ventas/pedidos/${id}/`, {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ [campo]: !valorActual }) 
       });
       if (res.ok) {
@@ -75,9 +125,8 @@ function App() {
 
   const actualizarPrecio = async (id, nuevoPrecio) => {
     try {
-      const res = await fetch(`https://pastillapp.onrender.com/api/productos/${id}/`, {
+      const res = await authFetch(`https://pastillapp.onrender.com/api/productos/${id}/`, {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ precio_actual: nuevoPrecio })
       });
       if (res.ok) {
@@ -89,9 +138,8 @@ function App() {
 
   const actualizarStock = async (id, nuevoStock) => {
     try {
-      const res = await fetch(`https://pastillapp.onrender.com/api/productos/${id}/`, {
+      const res = await authFetch(`https://pastillapp.onrender.com/api/productos/${id}/`, {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ stock: parseInt(nuevoStock) })
       });
       if (res.ok) {
@@ -101,23 +149,15 @@ function App() {
     } catch (e) { console.error(e); }
   };
 
-  // --- 5. FUNCIONES POST ---
+  // --- 6. FUNCIONES POST ---
   const guardarPedido = async () => {
-    if (!pacienteSeleccionado || lineasPedido.some(l => !l.productoId || !l.cantidad)) {
-      toast({ title: "Faltan datos", status: "warning" });
-      return;
-    }
     const datosPedido = {
       paciente: pacienteSeleccionado.id,
-      detalles: lineasPedido.map(l => ({
-        producto: parseInt(l.productoId),
-        cantidad: parseInt(l.cantidad)
-      }))
+      detalles: lineasPedido.map(l => ({ producto: parseInt(l.productoId), cantidad: parseInt(l.cantidad) }))
     };
     try {
-      const res = await fetch('https://pastillapp.onrender.com/api/ventas/pedidos/', {
+      const res = await authFetch('https://pastillapp.onrender.com/api/ventas/pedidos/', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(datosPedido)
       });
       if (res.ok) {
@@ -130,21 +170,32 @@ function App() {
   const guardarPaciente = async () => {
     const datos = { nombre: nuevoNombre, apellido: nuevoApellido, telefono: nuevoTelefono };
     try {
-      const res = await fetch('https://pastillapp.onrender.com/api/pacientes/', {
+      const res = await authFetch('https://pastillapp.onrender.com/api/pacientes/', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(datos)
       });
       if (res.ok) {
-        fetchPacientes();
-        setNuevoNombre(""); setNuevoApellido(""); setNuevoTelefono("");
+        fetchPacientes(); setNuevoNombre(""); setNuevoApellido(""); setNuevoTelefono("");
         modalPaciente.onClose();
         toast({ title: "Paciente guardado", status: "success" });
       }
     } catch (e) { console.error(e); }
   };
 
-  // --- 6. LOGICA UI ---
+  const guardarGasto = async () => {
+    try {
+      const res = await authFetch('https://pastillapp.onrender.com/api/gastos/movimientos/', {
+        method: 'POST',
+        body: JSON.stringify(nuevoGasto)
+      });
+      if (res.ok) {
+        fetchGastos(); modalGasto.onClose();
+        toast({ title: "Movimiento guardado", status: "success" });
+      }
+    } catch (e) { console.error(e); }
+  };
+
+  // --- 7. LÓGICA UI ---
   const agregarFila = () => setLineasPedido([...lineasPedido, { productoId: "", cantidad: "" }]);
   const eliminarFila = (i) => setLineasPedido(lineasPedido.filter((_, idx) => idx !== i));
   const actualizarFila = (i, campo, val) => {
@@ -158,13 +209,32 @@ function App() {
     modalPedido.onClose();
   };
 
-  // --- 7. FILTROS ---
+  // --- VISTA LOGIN ---
+  if (!token) {
+    return (
+      <Container maxW="sm" py={20}>
+        <Card p={6}>
+          <Heading size="md" mb={4} textAlign="center">Pastillapp 🔐</Heading>
+          <Stack spacing={4}>
+            <FormControl><FormLabel>Usuario</FormLabel><Input onChange={(e) => setUsername(e.target.value)} /></FormControl>
+            <FormControl><FormLabel>Contraseña</FormLabel><Input type="password" onChange={(e) => setPassword(e.target.value)} /></FormControl>
+            <Button colorScheme="blue" onClick={handleLogin}>Ingresar</Button>
+          </Stack>
+        </Card>
+      </Container>
+    );
+  }
+
+  // --- VISTA APP ---
   const pedidosPendientesEntrega = pedidos.filter(p => !p.entregado);
   const pedidosPendientesPago = pedidos.filter(p => !p.pagado);
 
   return (
     <Container maxW="container.xl" py={10}>
-      <Heading color="blue.600" mb={8} textAlign="center">Pastillapp 💊</Heading>
+      <Flex justify="space-between" align="center" mb={8}>
+        <Heading color="blue.600" textAlign="center">Pastillapp 💊</Heading>
+        <Button size="sm" colorScheme="red" onClick={() => { setToken(null); localStorage.removeItem('token'); }}>Cerrar Sesión</Button>
+      </Flex>
 
       <Tabs isFitted variant='soft-rounded' colorScheme='blue'>
         <TabList mb='1em'>
@@ -172,21 +242,17 @@ function App() {
           <Tab>📜 Historial</Tab>
           <Tab>👥 Pacientes</Tab>
           <Tab>💊 Inventario</Tab>
-          <Tab> Mis Gastos</Tab>
+          <Tab>💰 Mis Gastos</Tab>
         </TabList>
 
         <TabPanels>
-          
-          {/* TAB 1: OPERACIONES (Día a día) */}
+          {/* TAB 1: PEDIDOS */}
           <TabPanel>
             <Flex justify="space-between" mb={6}>
               <Text fontSize="xl" fontWeight="bold">Tareas Pendientes</Text>
               <Button colorScheme="blue" onClick={modalPedido.onOpen}>+ Nueva Venta</Button>
             </Flex>
-
             <SimpleGrid columns={{ base: 1, md: 2 }} spacing={10}>
-              
-              {/* PANEL A ENTREGAR */}
               <Box>
                 <Card bg="blue.50" borderTop="4px solid" borderColor="blue.400" shadow="md">
                   <CardHeader pb={2}><Heading size="md" color="blue.600">📦 Por Repartir</Heading></CardHeader>
@@ -199,9 +265,7 @@ function App() {
                             {p.detalles.map(d => (
                               <Text key={d.id} fontSize="xs" color="gray.600">• {d.cantidad} {d.nombre_producto}</Text>
                             ))}
-                            <Button size="xs" colorScheme="blue" mt={2} w="full" onClick={() => actualizarEstadoPedido(p.id, 'entregado', p.entregado)}>
-                              Marcar Entregado
-                            </Button>
+                            <Button size="xs" colorScheme="blue" mt={2} w="full" onClick={() => actualizarEstadoPedido(p.id, 'entregado', p.entregado)}>Marcar Entregado</Button>
                           </Box>
                         ))}
                       </Stack>
@@ -209,8 +273,6 @@ function App() {
                   </CardBody>
                 </Card>
               </Box>
-
-              {/* PANEL A COBRAR */}
               <Box>
                 <Card bg="red.50" borderTop="4px solid" borderColor="red.400" shadow="md">
                   <CardHeader pb={2}><Heading size="md" color="red.600">💰 Por Cobrar</Heading></CardHeader>
@@ -227,9 +289,7 @@ function App() {
                             </Box>
                             <Flex justify="space-between" align="center" mt={2}>
                               <Text fontWeight="bold" color="red.600">${p.total}</Text>
-                              <Button size="xs" colorScheme="red" onClick={() => actualizarEstadoPedido(p.id, 'pagado', p.pagado)}>
-                                Cobrar
-                              </Button>
+                              <Button size="xs" colorScheme="red" onClick={() => actualizarEstadoPedido(p.id, 'pagado', p.pagado)}>Cobrar</Button>
                             </Flex>
                           </Box>
                         ))}
@@ -241,7 +301,7 @@ function App() {
             </SimpleGrid>
           </TabPanel>
 
-          {/* TAB 2: HISTORIAL COMPLETO */}
+          {/* TAB 2: HISTORIAL */}
           <TabPanel>
             <Heading size="md" mb={4} color="gray.600">Registro General</Heading>
             <Stack spacing={3}>
@@ -263,7 +323,7 @@ function App() {
 
           {/* TAB 3: PACIENTES */}
           <TabPanel>
-            <Flex justify="space-between" mb={6}>
+             <Flex justify="space-between" mb={6}>
               <Text fontSize="xl" fontWeight="bold">Agenda de Clientes</Text>
               <Button colorScheme="green" onClick={modalPaciente.onOpen}>+ Nuevo Paciente</Button>
             </Flex>
@@ -308,120 +368,100 @@ function App() {
             </SimpleGrid>
           </TabPanel>
 
+          {/* TAB 5: GASTOS */}
           <TabPanel>
-            <SimpleGrid columns={{ base: 1,md: 2 }} spacing={10}>
-              {pacientes.map((p) => (
-                <Container key={p.id}>
-                  <Text>
-                    Este es el container
-                  </Text>
-                  <Card>
-                    <CardHeader>
-                      <Heading size="md">
-                        Hola, este es el header de {p.nombre_paciente}
-                      </Heading>
-                    </CardHeader>
-                    <CardBody>
-                      <Text fontSize="sm" color="orange.500">Este es el texto de cardbody solo con color orange.500</Text>
-                      <Button size="xs" colorScheme='orange'> boton con orange</Button>
-                    </CardBody>
-                  </Card>
-                  <Text> 
-                    Aca esta text con t minuscul error si o si con mayuscula
-                  </Text>
-                </Container>
+            <Button colorScheme="green" mb={4} onClick={modalGasto.onOpen}>+ Nuevo Movimiento</Button>
+            <SimpleGrid columns={{base: 1, md: 3}} spacing={4}>
+              {gastos.map(g => (
+                <Card key={g.id} borderLeft="5px solid" borderColor={g.tipo === 'INGRESO' ? 'green.400' : 'red.400'}>
+                  <CardBody>
+                    <Text fontWeight="bold">{g.descripcion}</Text>
+                    <Text fontSize="lg" color={g.tipo === 'INGRESO' ? 'green.600' : 'red.600'}>
+                        {g.tipo === 'INGRESO' ? '+' : '-'}${g.monto}
+                    </Text>
+                  </CardBody>
+                </Card>
               ))}
             </SimpleGrid>
-            <Container>
-              <Card>
-                <CardHeader>
-                  cardheaderr
-                </CardHeader>
-            
-              </Card>
-            </Container>
           </TabPanel>
+
         </TabPanels>
       </Tabs>
 
-
-
       {/* --- MODALES --- */}
-      <Modal isOpen={modalPedido.isOpen} onClose={cerrarLimpiarPedido} size="lg">
+      <Modal isOpen={modalPedido.isOpen} onClose={cerrarLimpiarPedido}>
         <ModalOverlay />
         <ModalContent>
           <ModalHeader>Cargar Nueva Venta</ModalHeader>
           <ModalBody>
-            <Stack spacing={4}>
+             <Stack spacing={4}>
               <FormControl isRequired>
                 <FormLabel>Paciente</FormLabel>
-                <Input placeholder="Escribí para buscar..." value={busqueda} onChange={(e) => {
+                <Input placeholder="Buscar..." value={busqueda} onChange={(e) => {
                   setBusqueda(e.target.value);
-                  const filt = pacientes.filter(p => 
-                    p.nombre.toLowerCase().includes(e.target.value.toLowerCase()) || 
-                    p.apellido.toLowerCase().includes(e.target.value.toLowerCase()));
-                  setSugerencias(filt);
+                  setSugerencias(pacientes.filter(p => p.nombre.toLowerCase().includes(e.target.value.toLowerCase()) || p.apellido.toLowerCase().includes(e.target.value.toLowerCase())));
                 }} />
                 {sugerencias.length > 0 && (
-                  <List border="1px solid" borderColor="gray.200" borderRadius="md" mt={1} maxH="150px" overflowY="auto" bg="white" position="absolute" width="90%" zIndex={10}>
+                  <List bg="white" zIndex={10} border="1px solid #ccc">
                     {sugerencias.map(p => (
-                      <ListItem key={p.id} p={2} _hover={{ bg: "purple.50", cursor: "pointer" }} onClick={() => {
-                        setBusqueda(`${p.apellido}, ${p.nombre}`);
-                        setPacienteSeleccionado(p);
-                        setSugerencias([]);
-                      }}>{p.apellido}, {p.nombre}</ListItem>
+                      <ListItem key={p.id} p={2} onClick={() => { setBusqueda(`${p.apellido}, ${p.nombre}`); setPacienteSeleccionado(p); setSugerencias([]); }}>{p.apellido}, {p.nombre}</ListItem>
                     ))}
                   </List>
                 )}
               </FormControl>
-              <Divider />
               {lineasPedido.map((linea, index) => (
-                <Flex key={index} gap={2} align="center">
-                  <Select placeholder="Medicamento" value={linea.productoId} onChange={(e) => actualizarFila(index, 'productoId', e.target.value)}>
+                <Flex key={index} gap={2}>
+                   <Select placeholder="Prod." value={linea.productoId} onChange={(e) => actualizarFila(index, 'productoId', e.target.value)}>
                     {productos.map(p => <option key={p.id} value={p.id}>{p.get_color_display} (${p.precio_actual})</option>)}
-                  </Select>
-                  <Input type="number" placeholder="Cant." w="80px" value={linea.cantidad} onChange={(e) => actualizarFila(index, 'cantidad', e.target.value)} />
-                  {lineasPedido.length > 1 && <Button colorScheme="red" variant="ghost" onClick={() => eliminarFila(index)}>x</Button>}
+                   </Select>
+                   <Input type="number" w="80px" value={linea.cantidad} onChange={(e) => actualizarFila(index, 'cantidad', e.target.value)} />
                 </Flex>
               ))}
-              <Button size="xs" variant="link" colorScheme="purple" onClick={agregarFila}>+ Agregar otro producto</Button>
-              <Box p={4} bg="purple.50" borderRadius="md" textAlign="right">
-                <Text fontWeight="bold" color="purple.800">
-                  Total Final: ${lineasPedido.reduce((acc, l) => {
-                    const prod = productos.find(p => p.id === parseInt(l.productoId));
-                    return acc + (prod ? parseFloat(prod.precio_actual) * (parseInt(l.cantidad) || 0) : 0);
-                  }, 0)}
-                </Text>
-              </Box>
+              <Button size="xs" onClick={agregarFila}>+ Agregar</Button>
             </Stack>
           </ModalBody>
           <ModalFooter>
-            <Button colorScheme="purple" mr={3} onClick={guardarPedido}>Confirmar Venta</Button>
-            <Button variant="ghost" onClick={cerrarLimpiarPedido}>Cerrar</Button>
+             <Button colorScheme="purple" onClick={guardarPedido}>Confirmar</Button>
+             <Button variant="ghost" onClick={cerrarLimpiarPedido}>Cerrar</Button>
           </ModalFooter>
         </ModalContent>
       </Modal>
 
-      {/* MODAL NUEVO PACIENTE */}
       <Modal isOpen={modalPaciente.isOpen} onClose={modalPaciente.onClose}>
         <ModalOverlay />
         <ModalContent>
-          <ModalHeader>Nuevo Registro de Paciente</ModalHeader>
+          <ModalHeader>Nuevo Paciente</ModalHeader>
           <ModalBody>
-            <Stack spacing={3}>
-              <Input placeholder="Nombre" value={nuevoNombre} onChange={(e) => setNuevoNombre(e.target.value)} />
-              <Input placeholder="Apellido" value={nuevoApellido} onChange={(e) => setNuevoApellido(e.target.value)} />
-              <Input placeholder="Teléfono" value={nuevoTelefono} onChange={(e) => setNuevoTelefono(e.target.value)} />
-            </Stack>
+             <Stack spacing={3}>
+               <Input placeholder="Nombre" onChange={(e) => setNuevoNombre(e.target.value)} />
+               <Input placeholder="Apellido" onChange={(e) => setNuevoApellido(e.target.value)} />
+               <Input placeholder="Teléfono" onChange={(e) => setNuevoTelefono(e.target.value)} />
+             </Stack>
           </ModalBody>
           <ModalFooter>
-            <Button colorScheme="green" mr={3} onClick={guardarPaciente}>Guardar</Button>
-            <Button variant="ghost" onClick={modalPaciente.onClose}>Cancelar</Button>
+             <Button colorScheme="green" onClick={guardarPaciente}>Guardar</Button>
           </ModalFooter>
         </ModalContent>
       </Modal>
+
+      <Modal isOpen={modalGasto.isOpen} onClose={modalGasto.onClose}>
+        <ModalOverlay />
+        <ModalContent>
+          <ModalHeader>Nuevo Movimiento</ModalHeader>
+          <ModalBody>
+            <Stack spacing={3}>
+              <Input placeholder="Descripción" onChange={(e) => setNuevoGasto({...nuevoGasto, descripcion: e.target.value})}/>
+              <Input type="number" placeholder="Monto" onChange={(e) => setNuevoGasto({...nuevoGasto, monto: e.target.value})}/>
+              <RadioGroup onChange={(val) => setNuevoGasto({...nuevoGasto, tipo: val})} value={nuevoGasto.tipo}>
+                <Stack direction='row'><Radio value='INGRESO'>Ingreso</Radio><Radio value='EGRESO'>Egreso</Radio></Stack>
+              </RadioGroup>
+            </Stack>
+          </ModalBody>
+          <ModalFooter><Button colorScheme="green" onClick={guardarGasto}>Guardar</Button></ModalFooter>
+        </ModalContent>
+      </Modal>
+
     </Container>
   )
 }
-
 export default App
