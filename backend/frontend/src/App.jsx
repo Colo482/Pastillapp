@@ -4,14 +4,19 @@ import {
   Modal, ModalOverlay, ModalContent, ModalHeader, ModalBody, ModalCloseButton,
   FormControl, FormLabel, Input, useDisclosure, ModalFooter,
   List, ListItem, Tabs, TabList, TabPanels, Tab, TabPanel, Select, Divider,
-  SimpleGrid, Card, CardHeader, CardBody, CardFooter, RadioGroup, Radio
+  SimpleGrid, Card, CardHeader, CardBody, CardFooter, RadioGroup, Radio, Checkbox
 } from '@chakra-ui/react'
+import {
+  PieChart, Pie, Cell, BarChart, Bar, LineChart, Line,
+  XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer
+} from 'recharts'
 
 function App() {
   // --- 1. ESTADOS Y AUTENTICACIÓN ---
   const [token, setToken] = useState(localStorage.getItem('token') || null);
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
+  
   const [pedidos, setPedidos] = useState([]);
   const [pacientes, setPacientes] = useState([]);
   const [productos, setProductos] = useState([]);
@@ -26,15 +31,18 @@ function App() {
   const [nuevoApellido, setNuevoApellido] = useState("");
   const [nuevoTelefono, setNuevoTelefono] = useState("");
   
-  // Nuevo estado para nuevo gasto
-  const [nuevoGasto, setNuevoGasto] = useState({ descripcion: "", monto: "", tipo: "EGRESO" });
+  // Estados para Billetera
+  const [nuevoGasto, setNuevoGasto] = useState({ nombre: "", descripcion: "", monto: "", tipo: "EGRESO", categoria: "OTROS" });
+  const [gastoEditando, setGastoEditando] = useState(null);
+  const [seleccionados, setSeleccionados] = useState([]); 
+  const [tipoGrafico, setTipoGrafico] = useState('torta');
 
   const modalPedido = useDisclosure(); 
   const modalPaciente = useDisclosure(); 
   const modalGasto = useDisclosure();
   const toast = useToast();
 
-  // --- 2. FUNCION AUTH FETCH (La "Aduana") ---
+  // --- 2. FUNCION AUTH FETCH ---
   const authFetch = async (url, options = {}) => {
     const headers = {
       ...options.headers,
@@ -109,7 +117,7 @@ function App() {
     } catch (e) { console.error(e); }
   };
 
-  // --- 5. FUNCIONES DE ACTUALIZACIÓN (PATCH) ---
+  // --- 5. FUNCIONES DE ACTUALIZACIÓN PASTILLAS ---
   const actualizarEstadoPedido = async (id, campo, valorActual) => {
     try {
       const res = await authFetch(`https://pastillapp.onrender.com/api/ventas/pedidos/${id}/`, {
@@ -182,20 +190,90 @@ function App() {
     } catch (e) { console.error(e); }
   };
 
+  // --- 7. LÓGICA DE BILLETERA (CRUD) ---
+  const abrirModalGasto = (gasto = null) => {
+    if (gasto) {
+      setGastoEditando(gasto.id);
+      setNuevoGasto({ nombre: gasto.nombre, descripcion: gasto.descripcion || "", monto: gasto.monto, tipo: gasto.tipo, categoria: gasto.categoria });
+    } else {
+      setGastoEditando(null);
+      setNuevoGasto({ nombre: "", descripcion: "", monto: "", tipo: "EGRESO", categoria: "OTROS" });
+    }
+    modalGasto.onOpen();
+  };
+
   const guardarGasto = async () => {
     try {
-      const res = await authFetch('https://pastillapp.onrender.com/api/gastos/movimientos/', {
-        method: 'POST',
+      const url = gastoEditando 
+        ? `https://pastillapp.onrender.com/api/gastos/movimientos/${gastoEditando}/`
+        : 'https://pastillapp.onrender.com/api/gastos/movimientos/';
+      const method = gastoEditando ? 'PATCH' : 'POST';
+
+      const res = await authFetch(url, {
+        method: method,
         body: JSON.stringify(nuevoGasto)
       });
       if (res.ok) {
         fetchGastos(); modalGasto.onClose();
-        toast({ title: "Movimiento guardado", status: "success" });
+        toast({ title: `Movimiento ${gastoEditando ? 'actualizado' : 'guardado'}`, status: "success" });
+      } else {
+        toast({ title: "Error al guardar", status: "error" });
       }
     } catch (e) { console.error(e); }
   };
 
-  // --- 7. LÓGICA UI ---
+  const eliminarGasto = async (id) => {
+    if(!window.confirm("¿Seguro que quieres borrar este movimiento?")) return;
+    try {
+      const res = await authFetch(`https://pastillapp.onrender.com/api/gastos/movimientos/${id}/`, { method: 'DELETE' });
+      if (res.ok) {
+        fetchGastos();
+        setSeleccionados(seleccionados.filter(selId => selId !== id)); // Quitar de seleccionados
+        toast({ title: "Movimiento eliminado", status: "info" });
+      }
+    } catch (e) { console.error(e); }
+  };
+
+  const toggleSeleccion = (id) => {
+    if (seleccionados.includes(id)) {
+      setSeleccionados(seleccionados.filter(item => item !== id));
+    } else {
+      setSeleccionados([...seleccionados, id]);
+    }
+  };
+
+  // --- MATEMÁTICAS BILLETERA ---
+  const totalIngresos = gastos.filter(g => g.tipo === 'INGRESO').reduce((acc, g) => acc + parseFloat(g.monto), 0);
+  const totalEgresos = gastos.filter(g => g.tipo === 'EGRESO').reduce((acc, g) => acc + parseFloat(g.monto), 0);
+  const balance = totalIngresos - totalEgresos;
+
+  const sumaSeleccionada = gastos
+    .filter(g => seleccionados.includes(g.id))
+    .reduce((acc, g) => acc + (g.tipo === 'INGRESO' ? parseFloat(g.monto) : -parseFloat(g.monto)), 0);
+
+  // --- DATOS PARA GRÁFICOS ---
+  const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#AF19FF', '#FF1919'];
+  const datosTorta = gastos.filter(g => g.tipo === 'EGRESO').reduce((acc, g) => {
+    const cat = acc.find(item => item.name === g.categoria);
+    if (cat) cat.value += parseFloat(g.monto);
+    else acc.push({ name: g.categoria, value: parseFloat(g.monto) });
+    return acc;
+  }, []);
+
+  const datosEvolucion = gastos.reduce((acc, g) => {
+    const fecha = new Date(g.fecha).toLocaleDateString();
+    let dia = acc.find(item => item.fecha === fecha);
+    if (!dia) {
+      dia = { fecha: fecha, Ingresos: 0, Gastos: 0 };
+      acc.push(dia);
+    }
+    if (g.tipo === 'INGRESO') dia.Ingresos += parseFloat(g.monto);
+    if (g.tipo === 'EGRESO') dia.Gastos += parseFloat(g.monto);
+    return acc;
+  }, []).reverse(); // Damos vuelta para que se vea cronológicamente
+
+
+  // --- 8. LÓGICA UI PEDIDOS ---
   const agregarFila = () => setLineasPedido([...lineasPedido, { productoId: "", cantidad: "" }]);
   const eliminarFila = (i) => setLineasPedido(lineasPedido.filter((_, idx) => idx !== i));
   const actualizarFila = (i, campo, val) => {
@@ -237,12 +315,12 @@ function App() {
       </Flex>
 
       <Tabs isFitted variant='soft-rounded' colorScheme='blue'>
-        <TabList mb='1em'>
+        <TabList mb='1em' flexWrap="wrap">
           <Tab>📝 Pedidos</Tab>
           <Tab>📜 Historial</Tab>
           <Tab>👥 Pacientes</Tab>
           <Tab>💊 Inventario</Tab>
-          <Tab>💰 Mis Gastos</Tab>
+          <Tab>👛 Mi Billetera</Tab>
         </TabList>
 
         <TabPanels>
@@ -368,21 +446,98 @@ function App() {
             </SimpleGrid>
           </TabPanel>
 
-          {/* TAB 5: GASTOS */}
+          {/* TAB 5: MI BILLETERA */}
           <TabPanel>
-            <Button colorScheme="green" mb={4} onClick={modalGasto.onOpen}>+ Nuevo Movimiento</Button>
-            <SimpleGrid columns={{base: 1, md: 3}} spacing={4}>
-              {gastos.map(g => (
-                <Card key={g.id} borderLeft="5px solid" borderColor={g.tipo === 'INGRESO' ? 'green.400' : 'red.400'}>
-                  <CardBody>
-                    <Text fontWeight="bold">{g.descripcion}</Text>
-                    <Text fontSize="lg" color={g.tipo === 'INGRESO' ? 'green.600' : 'red.600'}>
-                        {g.tipo === 'INGRESO' ? '+' : '-'}${g.monto}
-                    </Text>
-                  </CardBody>
-                </Card>
-              ))}
+            <Flex justify="space-between" align="center" mb={4}>
+              <Heading size="md">Mis Finanzas 👛</Heading>
+              <Button colorScheme="green" onClick={() => abrirModalGasto()}>+ Nuevo Movimiento</Button>
+            </Flex>
+
+            {/* Tarjetas de Resumen Matemático */}
+            <SimpleGrid columns={{ base: 1, md: 4 }} spacing={4} mb={6}>
+              <Card bg="green.50"><CardBody><Text>Ingresos</Text><Heading size="md" color="green.600">${totalIngresos.toFixed(2)}</Heading></CardBody></Card>
+              <Card bg="red.50"><CardBody><Text>Gastos</Text><Heading size="md" color="red.600">${totalEgresos.toFixed(2)}</Heading></CardBody></Card>
+              <Card bg="blue.50"><CardBody><Text>Balance Total</Text><Heading size="md" color="blue.600">${balance.toFixed(2)}</Heading></CardBody></Card>
+              <Card bg="purple.50" border="2px solid" borderColor="purple.300">
+                <CardBody>
+                  <Text fontWeight="bold">Suma Seleccionada</Text>
+                  <Heading size="md" color={sumaSeleccionada >= 0 ? "green.600" : "red.600"}>
+                    ${sumaSeleccionada.toFixed(2)}
+                  </Heading>
+                </CardBody>
+              </Card>
             </SimpleGrid>
+
+            <Divider my={6} />
+
+            {/* Zona de Gráficos */}
+            <Box mb={8}>
+              <Flex justify="space-between" align="center" mb={4}>
+                <Text fontWeight="bold">Análisis Visual</Text>
+                <Select w="250px" bg="white" value={tipoGrafico} onChange={(e) => setTipoGrafico(e.target.value)}>
+                  <option value="torta">Distribución (En qué gasto)</option>
+                  <option value="barras">Comparación (Ingreso vs Gasto)</option>
+                  <option value="lineas">Evolución en el Tiempo</option>
+                </Select>
+              </Flex>
+              <Box h="300px" w="100%" bg="white" p={4} borderRadius="md" shadow="sm">
+                <ResponsiveContainer width="100%" height="100%">
+                  {tipoGrafico === 'torta' ? (
+                    <PieChart>
+                      <Pie data={datosTorta} cx="50%" cy="50%" outerRadius={100} dataKey="value" label>
+                        {datosTorta.map((entry, index) => <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />)}
+                      </Pie>
+                      <Tooltip formatter={(value) => `$${value}`} />
+                      <Legend />
+                    </PieChart>
+                  ) : tipoGrafico === 'barras' ? (
+                    <BarChart data={datosEvolucion}>
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis dataKey="fecha" />
+                      <YAxis />
+                      <Tooltip formatter={(value) => `$${value}`} />
+                      <Legend />
+                      <Bar dataKey="Ingresos" fill="#38A169" />
+                      <Bar dataKey="Gastos" fill="#E53E3E" />
+                    </BarChart>
+                  ) : (
+                    <LineChart data={datosEvolucion}>
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis dataKey="fecha" />
+                      <YAxis />
+                      <Tooltip formatter={(value) => `$${value}`} />
+                      <Legend />
+                      <Line type="monotone" dataKey="Ingresos" stroke="#38A169" strokeWidth={2}/>
+                      <Line type="monotone" dataKey="Gastos" stroke="#E53E3E" strokeWidth={2}/>
+                    </LineChart>
+                  )}
+                </ResponsiveContainer>
+              </Box>
+            </Box>
+
+            {/* Lista Interactiva de Historial */}
+            <Text fontWeight="bold" mb={4}>Historial de Movimientos (Selecciona para sumar)</Text>
+            <Stack spacing={3}>
+              {gastos.map(g => (
+                <Flex key={g.id} p={3} bg="white" shadow="sm" borderRadius="md" align="center" justify="space-between" borderLeft="4px solid" borderColor={g.tipo === 'INGRESO' ? 'green.400' : 'red.400'}>
+                  <Flex align="center" gap={4}>
+                    <Checkbox size="lg" colorScheme={g.tipo === 'INGRESO' ? 'green' : 'red'} isChecked={seleccionados.includes(g.id)} onChange={() => toggleSeleccion(g.id)} />
+                    <Box>
+                      <Text fontWeight="bold">{g.nombre} <Badge ml={2}>{g.categoria}</Badge></Text>
+                      <Text fontSize="xs" color="gray.500">{new Date(g.fecha).toLocaleString()} {g.descripcion ? `- ${g.descripcion}` : ''}</Text>
+                    </Box>
+                  </Flex>
+                  <Flex align="center" gap={2}>
+                    <Text fontWeight="bold" mr={4} color={g.tipo === 'INGRESO' ? 'green.600' : 'red.600'}>
+                      {g.tipo === 'INGRESO' ? '+' : '-'}${g.monto}
+                    </Text>
+                    <Button size="xs" colorScheme="blue" variant="ghost" onClick={() => abrirModalGasto(g)}>✏️</Button>
+                    <Button size="xs" colorScheme="red" variant="ghost" onClick={() => eliminarGasto(g.id)}>🗑️</Button>
+                  </Flex>
+                </Flex>
+              ))}
+              {gastos.length === 0 && <Text color="gray.500">Aún no has registrado movimientos.</Text>}
+            </Stack>
           </TabPanel>
 
         </TabPanels>
@@ -444,20 +599,36 @@ function App() {
         </ModalContent>
       </Modal>
 
+      {/* MODAL MI BILLETERA */}
       <Modal isOpen={modalGasto.isOpen} onClose={modalGasto.onClose}>
         <ModalOverlay />
         <ModalContent>
-          <ModalHeader>Nuevo Movimiento</ModalHeader>
+          <ModalHeader>{gastoEditando ? "Editar Movimiento" : "Nuevo Movimiento"}</ModalHeader>
           <ModalBody>
             <Stack spacing={3}>
-              <Input placeholder="Descripción" onChange={(e) => setNuevoGasto({...nuevoGasto, descripcion: e.target.value})}/>
-              <Input type="number" placeholder="Monto" onChange={(e) => setNuevoGasto({...nuevoGasto, monto: e.target.value})}/>
+              <Input placeholder="Título (ej: Sueldo, Supermercado)" value={nuevoGasto.nombre} onChange={(e) => setNuevoGasto({...nuevoGasto, nombre: e.target.value})}/>
+              <Input placeholder="Descripción opcional" value={nuevoGasto.descripcion} onChange={(e) => setNuevoGasto({...nuevoGasto, descripcion: e.target.value})}/>
+              <Input type="number" placeholder="Monto ($)" value={nuevoGasto.monto} onChange={(e) => setNuevoGasto({...nuevoGasto, monto: e.target.value})}/>
+              <Select value={nuevoGasto.categoria} onChange={(e) => setNuevoGasto({...nuevoGasto, categoria: e.target.value})}>
+                <option value="SUELDO">Sueldo / Honorarios</option>
+                <option value="COMIDA">Comida / Supermercado</option>
+                <option value="TRANSPORTE">Transporte / Combustible</option>
+                <option value="SERVICIOS">Servicios / Impuestos</option>
+                <option value="OCIO">Ocio / Salidas</option>
+                <option value="OTROS">Otros</option>
+              </Select>
               <RadioGroup onChange={(val) => setNuevoGasto({...nuevoGasto, tipo: val})} value={nuevoGasto.tipo}>
-                <Stack direction='row'><Radio value='INGRESO'>Ingreso</Radio><Radio value='EGRESO'>Egreso</Radio></Stack>
+                <Stack direction='row'>
+                  <Radio value='INGRESO' colorScheme="green">Ingreso</Radio>
+                  <Radio value='EGRESO' colorScheme="red">Egreso</Radio>
+                </Stack>
               </RadioGroup>
             </Stack>
           </ModalBody>
-          <ModalFooter><Button colorScheme="green" onClick={guardarGasto}>Guardar</Button></ModalFooter>
+          <ModalFooter>
+             <Button colorScheme="green" onClick={guardarGasto}>{gastoEditando ? "Actualizar" : "Guardar"}</Button>
+             <Button variant="ghost" onClick={modalGasto.onClose}>Cancelar</Button>
+          </ModalFooter>
         </ModalContent>
       </Modal>
 
